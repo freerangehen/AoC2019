@@ -24,7 +24,7 @@ class RAM(list):
 
 class IntcodeComputer:
 
-    def __init__(self, in_que, out_que, id_=None):
+    def __init__(self, in_que, out_que, id_=None, code=None):
         self.in_que = in_que
         self.out_que = out_que
         self.idx = 0
@@ -33,6 +33,10 @@ class IntcodeComputer:
         self.last_input = None
         self.wait_for_input = False
         self.relative_base = 0
+        if code is not None:
+            self.code = RAM(code)
+        else:
+            self.code = None
         self.dispatch = {
                 '01': self.add_, 
                 '02': self.mul_,
@@ -171,20 +175,22 @@ class IntcodeComputer:
     
         return ram, idx
     
-    def run_prog(self, code, reset=False, 
+    def run_prog(self, code=None, reset=False, 
                  break_on_out=False, break_on_in=False):
-        code = RAM(code)
+        if code is not None:
+            self.code = RAM(code)
         if reset:
             self.idx = 0
 
         while True:
-            self.op, args_mode = self.get_op_and_arg_modes(code[self.idx])
+            self.op, args_mode = self.get_op_and_arg_modes(self.code[self.idx])
             if self.op != '99':
-                args_ = code[self.idx + 1: self.idx + self.idx_inc[self.op]]
+                args_ = self.code[self.idx + 1: self.idx + self.idx_inc[self.op]]
             else:
                 break
             args_and_modes = list(chain.from_iterable(zip(args_, args_mode)))
-            code, new_idx = self.dispatch[self.op](*args_and_modes, code, self.idx)
+            self.code, new_idx = self.dispatch[self.op](*args_and_modes, 
+                                                        self.code, self.idx)
 
             if new_idx == self.idx:
                 self.idx += self.idx_inc[self.op]
